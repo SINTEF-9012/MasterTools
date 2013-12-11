@@ -1,0 +1,15 @@
+{
+  "name": "MasterTools",
+  "version": "0.1.0",
+  "dependencies": {
+    "protobufjs": "~1.5.2",
+    "optimist": "~0.6.0",
+    "ws": "~0.4.31"
+  },
+  "devDependencies": {
+    "expect.js": "~0.2.0"
+  },
+  "scripts": {
+    "start": "tsc command.ts --module commonjs && node command.js"
+  }
+}
