@@ -347,7 +347,7 @@ declare module NodeMaster {
 
 declare module NodeMaster {
 
-	export interface IPatientModel extends ProtoBufModel {
+	export interface PatientModel extends ProtoBufModel {
 		ID: string;
 		getID() : string;
 		setID(iD : string): void;
@@ -385,11 +385,11 @@ declare module NodeMaster {
 	}
 	
 	export interface PatientModelBuilder {
-		new(): IPatientModel;
-		decode(buffer: ArrayBuffer) : IPatientModel;
-		decode(buffer: NodeBuffer) : IPatientModel;
+		new(): PatientModel;
+		decode(buffer: ArrayBuffer) : PatientModel;
+		decode(buffer: NodeBuffer) : PatientModel;
 		//decode(buffer: ByteArrayBuffer) : PatientModel;
-		decode64(buffer: string) : IPatientModel;
+		decode64(buffer: string) : PatientModel;
 		TriageStatusEnum: PatientModel.TriageStatusEnum;
 		
 	}	
@@ -525,9 +525,9 @@ declare module NodeMaster.Transaction {
 		MessengerList: MessengerModel[];
 		getMessengerList() : MessengerModel[];
 		setMessengerList(messengerList : MessengerModel[]): void;
-		PatientList: IPatientModel[];
-		getPatientList() : IPatientModel[];
-		setPatientList(patientList : IPatientModel[]): void;
+		PatientList: PatientModel[];
+		getPatientList() : PatientModel[];
+		setPatientList(patientList : PatientModel[]): void;
 		ResourceMobilizationList: ResourceMobilizationModel[];
 		getResourceMobilizationList() : ResourceMobilizationModel[];
 		setResourceMobilizationList(resourceMobilizationList : ResourceMobilizationModel[]): void;

@@ -20,7 +20,7 @@ var argv = require('optimist')
 
 // Import in typescript and commondjs style
 var ProtoBuf = require("protobufjs");
-var WebSocket = require("ws");
+var ws = require("ws");
 
 
 var builder = ProtoBuf.protoFromFile("./definitions/NodeMaster.proto");
@@ -31,9 +31,9 @@ var protoTransaction : NodeMaster.TransactionBuilder =
 	protoPatientModel : NodeMaster.PatientModelBuilder =
 	builder.build("NodeMaster.PatientModel");
 
-var ws = new WebSocket("ws://localhost:8181/MasterTools");
+var wsi = new ws("ws://localhost:8181/MasterTools");
 
-ws.on('message', function(data : NodeBuffer, flags : any) {
+wsi.on('message', function(data : NodeBuffer, flags : any) {
 	var transaction = protoTransaction.decode(data);
 
 	var response = new protoTransaction();
