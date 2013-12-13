@@ -70,6 +70,9 @@ var protoTransaction : NodeMaster.TransactionBuilder =
 
 var wsi = new ws("ws://localhost:8181/MasterTools");
 
+
+var somethingChanged = false;
+
 wsi.on('message', function(data : NodeBuffer, flags : any) {
 	var transaction = protoTransaction.decode(data);
 
@@ -165,22 +168,31 @@ wsi.on('message', function(data : NodeBuffer, flags : any) {
 		});
 	}
 
-	// Construct a wonderful transaction to store in the database
-	var transactionToStore = new protoTransaction();
-	transactionToStore.SenderID = ""; // space efficienty
-	transactionToStore.PublishList = new protoTransaction.Content();
+	somethingChanged = true;
 
-	transactionToStore.PublishList.HelpBeaconList = StoreToList(scope.HelpBeaconStore);
-	transactionToStore.PublishList.IncidentObjectList = StoreToList(scope.IncidentObjectStore);
-	transactionToStore.PublishList.MediaList = StoreToList(scope.MediaStore);
-	transactionToStore.PublishList.MessengerList = StoreToList(scope.MessengerStore);
-	transactionToStore.PublishList.PatientList = StoreToList(scope.PatientStore);
-	transactionToStore.PublishList.ResourceMobilizationList = StoreToList(scope.ResourceMobilizationStore);
-	transactionToStore.PublishList.ResourceStatusList = StoreToList(scope.ResourceStatusStore);
-
-	// Store it in the database <3
-	insertDb.run(+new Date, transactionToStore.toBuffer());
 });
+
+setInterval(function() {
+	if (somethingChanged) {
+		// Construct a wonderful transaction to store in the database
+		var transactionToStore = new protoTransaction();
+		transactionToStore.SenderID = ""; // space efficienty
+		transactionToStore.PublishList = new protoTransaction.Content();
+
+		transactionToStore.PublishList.HelpBeaconList = StoreToList(scope.HelpBeaconStore);
+		transactionToStore.PublishList.IncidentObjectList = StoreToList(scope.IncidentObjectStore);
+		transactionToStore.PublishList.MediaList = StoreToList(scope.MediaStore);
+		transactionToStore.PublishList.MessengerList = StoreToList(scope.MessengerStore);
+		transactionToStore.PublishList.PatientList = StoreToList(scope.PatientStore);
+		transactionToStore.PublishList.ResourceMobilizationList = StoreToList(scope.ResourceMobilizationStore);
+		transactionToStore.PublishList.ResourceStatusList = StoreToList(scope.ResourceStatusStore);
+
+		// Store it in the database <3
+		insertDb.run(+new Date, transactionToStore.toBuffer());
+
+		somethingChanged = false;
+	}
+}, 1000); // Record each second
 
 // Express <3
 var app = express();
