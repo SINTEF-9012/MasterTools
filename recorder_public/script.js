@@ -67,7 +67,8 @@ $(document).ready(function() {
 
 		});
 
-		timeline.children(':last,:first').width(jwindow.width()/2).height('99%');
+		timeline.children(':first').width(jwindow.width()/2).height('99%');
+		timeline.children(':last, :first').css('margin-right', jwindow.width()/2-1);
 
 		var wrapper = $('#wrapper');
 		wrapper.scrollLeft(widthSum+jwindow.width());
