@@ -4,7 +4,8 @@
   "dependencies": {
     "protobufjs": "~1.5.2",
     "optimist": "~0.6.0",
-    "ws": "~0.4.31"
+    "ws": "~0.4.31",
+    "sqlite3": "~2.1.19"
   },
   "devDependencies": {
     "expect.js": "~0.2.0"
