@@ -1,0 +1,52 @@
+html, body {
+	margin:0;
+	padding:0;
+	width:100%;
+	height:100%;
+}
+
+body {
+	background: #2c3e50;
+	color:#ecf0f1;
+}
+
+#infos {
+text-align: center;
+position: absolute;
+top: 0;
+font-family: sans-serif;
+left: 0;
+right: 0;
+z-index: 1;
+}
+
+#time {
+color: #e74c3c;
+font-size: 3em;
+margin-bottom:0;
+}
+
+#wrapper {
+	overflow-x:scroll;
+	overflow-y:hidden;
+	width:100%;
+	height:100%;
+	-webkit-overflow-scrolling: touch;
+}
+
+#timeline {
+	width:auto;
+	white-space: nowrap;
+	height:100%;
+}
+
+.record {
+	border-right:1px solid #16a085;
+	width:1px;
+	display:inline-block;
+}
+
+.record.selected {
+	border-right-color:#c0392b;
+	height:76%;
+}

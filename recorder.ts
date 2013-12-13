@@ -1,10 +1,12 @@
 /// <reference path="./definitions/node.d.ts" />
 /// <reference path="./definitions/NodeMaster.d.ts" />
+/// <reference path="./definitions/express.d.ts" />
 
 // Import in typescript and commondjs style
 var ProtoBuf = require("protobufjs");
 var ws = require("ws");
 var sqlite3 = require('sqlite3').verbose();
+import express = require('express');
 
 var scope : {
 	HelpBeaconStore : {[ID : string] : NodeMaster.HelpBeaconModel };
@@ -28,9 +30,7 @@ var scope : {
 function updateProperties(input: any, output:any) {
 	for (var key in input) {
 		// Don't update getter and setters
-		if (!key.match(/^[sg]et/)) {
-			console.log(key); // TODO debug
-			
+		if (!key.match(/^([sg]et|__construct|encode|toArrayBuffer|toBuffer|toString)/)) {
 			if (input[key] != null) {
 				output[key] = input[key];
 			}
@@ -54,7 +54,15 @@ db.serialize(function() {
 });
 
 var insertDb = db.prepare('INSERT INTO recorder VALUES (?, ?)'),
-	findDb = db.prepare('SELECT datetime, scope FROM recorder WHERE ABS($time-datetime) = (select MIN(ABS($time - datetime)) from recorder)');
+	findDb = db.prepare('SELECT datetime, scope FROM recorder'
+		+' WHERE ABS($time-datetime) = (SELECT MIN(ABS($time - datetime)) FROM recorder)'),
+	infosDb = db.prepare('SELECT (SELECT COUNT(*) FROM recorder) AS count'
+		+', (SELECT datetime FROM recorder'
+			+' WHERE datetime = (SELECT MIN(datetime) FROM recorder)) AS oldest'
+		+', (SELECT datetime FROM recorder'
+			+' WHERE datetime = (SELECT MAX(datetime) FROM recorder)) AS newest'),
+	historyDb = db.prepare('SELECT datetime AS d, LENGTH(scope) AS s'
+		+' FROM recorder ORDER BY datetime ASC');
 
 var protoTransaction : NodeMaster.TransactionBuilder =
 	ProtoBuf.protoFromFile("./definitions/NodeMaster.proto")
@@ -173,3 +181,36 @@ wsi.on('message', function(data : NodeBuffer, flags : any) {
 	// Store it in the database <3
 	insertDb.run(+new Date, transactionToStore.toBuffer());
 });
+
+// Express <3
+var app = express();
+
+app.get('/history/:precision', function(req, res) {
+	var result = [],
+		precision = parseInt(req.params.precision),
+		oldTime = 0;
+
+	historyDb.each(function(error, row){
+		if (row.d - oldTime > precision) {
+			oldTime = row.d;
+			result.push(row);
+		}
+	}, function() {
+		res.send(result);
+		historyDb.reset();
+	});
+}).get('/infos', function(req, res) {
+	infosDb.get(function(error, row){
+		res.send(row);
+		infosDb.reset();
+	});
+}).get('/get/:datetime', function(req, res) {
+	findDb.get(parseInt(req.params.datetime), function(error, row) {
+		res.send(row);
+	});
+});
+
+app.use(express.static('recorder_public'));
+app.use(express.compress());
+
+app.listen(4253);
