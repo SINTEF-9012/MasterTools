@@ -88,7 +88,14 @@ $(document).ready(function() {
 		});
 
 		timeline.children(':first').width(jwindow.width()/2).height('100%');
-		timeline.children(':last, :first').css('margin-right', jwindow.width()/2-1);
+
+		function setMargins() {
+			timeline.children(':last, :first').css('margin-right', jwindow.width()/2-1);
+		}
+
+		setMargins();
+
+		jwindow.resize(setMargins);
 
 		currentTime = maxTime;
 
