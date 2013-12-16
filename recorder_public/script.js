@@ -3,7 +3,12 @@ $(document).ready(function() {
 		timeline = $('#timeline'),
 		jwindow = $(window);
 
-	//$('#wrapper').on('touchstart', function(event){});
+	var myScroll = new IScroll('#wrapper', {
+		scrollX: true,
+		scrollY: false,
+		probeType: 3,
+		mouseWheel: true
+	});
 
 	var time = $('#time'),
 		precisetime = $('#precisetime'),
@@ -17,25 +22,33 @@ $(document).ready(function() {
 		precisetime.text(m.format("H:mm:ss - Do MMMM YYYY"));
 	}
 
-	var	oldRecord = null;
+	var	oldRecord = null,
+		minTime = 0,
+		maxTime = 0;
 
 	function WatchScroll() {
-		var record = document.elementFromPoint(jwindow.width()/2, jwindow.height()-50);
+		var record = document.elementFromPoint(jwindow.width()/2, jwindow.height()-20);
 
 		if (record && record.className.indexOf("record") >= 0 && oldRecord != record) {
 			$(oldRecord).removeClass('selected');
 			currentTime = $(record).addClass('selected').data('time');
 			updateTime();
 			oldRecord = record;
-			// console.log($(record).data('time'));
 		} 
 	}
 
+	myScroll.on('scrollEnd', WatchScroll);
+	myScroll.on('scroll', WatchScroll);
+		
 	$.get('/history/10000', function(data){
 		if (!data.length) {
 			return;
 		}
-		var previousTime = data[0].d;
+
+		minTime = data[0].d;
+		maxTime = data[data.length-1].d;
+
+		var previousTime = minTime,
 			maxSize = Number.MIN_VALUE,
 			minSize = Number.MAX_VALUE;
 
@@ -67,23 +80,15 @@ $(document).ready(function() {
 
 		});
 
-		timeline.children(':first').width(jwindow.width()/2).height('99%');
+		timeline.children(':first').width(jwindow.width()/2).height('100%');
 		timeline.children(':last, :first').css('margin-right', jwindow.width()/2-1);
 
-		var wrapper = $('#wrapper');
-		wrapper.scrollLeft(widthSum+jwindow.width());
-
-		currentTime = data[data.length-1].d;
+		currentTime = maxTime;
 
 		updateTime();
-		WatchScroll();
 
-
-		wrapper.on('scroll touchmove', WatchScroll);
-
-		window.setInterval(function() {
-			updateTime();
-		}, 1000);
+		myScroll.refresh();
+		myScroll.scrollToElement('.record:last-child');
 
 	});
 
