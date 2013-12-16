@@ -71,6 +71,7 @@ $(document).ready(function() {
 			var r = record.clone();
 		
 			var width = Math.max(Math.min(parseInt((d.d-previousTime)/1000), 99),3),
+				// http://en.wikipedia.org/wiki/Sigmoid_function
 				height = (1/(1+Math.exp(-d.s/(diffSize/6)))-0.5)*0.9+0.1;
 
 			console.log(diffSize, d.s, height)

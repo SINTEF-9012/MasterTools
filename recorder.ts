@@ -112,31 +112,31 @@ function updateScope(transaction : NodeMaster.Transaction) {
 		remove = transaction.RemoveList;
 
 	if (remove) {
-		publish.HelpBeaconList.forEach(function(HelpBeacon) {
+		remove.HelpBeaconList.forEach(function(HelpBeacon) {
 			differencesAmount += 10;
 			delete scope.HelpBeaconStore[HelpBeacon.ID];
 		});
-		publish.IncidentObjectList.forEach(function(IncidentObject) {
+		remove.IncidentObjectList.forEach(function(IncidentObject) {
 			differencesAmount += 10;
 			delete scope.IncidentObjectStore[IncidentObject.ID];
 		});
-		publish.MediaList.forEach(function(Media) {
+		remove.MediaList.forEach(function(Media) {
 			differencesAmount += 10;
 			delete scope.MediaStore[Media.ID];
 		});
-		publish.MessengerList.forEach(function(Messenger) {
+		remove.MessengerList.forEach(function(Messenger) {
 			differencesAmount += 10;
 			delete scope.MessengerStore[Messenger.ID];
 		});
-		publish.PatientList.forEach(function(Patient) {
+		remove.PatientList.forEach(function(Patient) {
 			differencesAmount += 10;
 			delete scope.PatientStore[Patient.ID];
 		});
-		publish.ResourceMobilizationList.forEach(function(ResourceMobilization) {
+		remove.ResourceMobilizationList.forEach(function(ResourceMobilization) {
 			differencesAmount += 10;
 			delete scope.ResourceMobilizationStore[ResourceMobilization.ID];
 		});
-		publish.ResourceStatusList.forEach(function(ResourceStatus) {
+		remove.ResourceStatusList.forEach(function(ResourceStatus) {
 			differencesAmount += 10;
 			delete scope.ResourceStatusStore[ResourceStatus.ID];
 		});
