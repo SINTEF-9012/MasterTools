@@ -71,3 +71,23 @@ margin-bottom:0;
 	border-right-color:#c0392b;
 	height:76%;
 }
+
+#playpause {
+	position: absolute;
+	right: 1em;
+	top: 1em;
+	background: #27ae60;
+	border: none;
+	color: white;
+	font-size: 1.6em;
+	padding: 0.3em 0.9em;
+	z-index:3;
+}
+
+#playpause:hover {
+	background: #1abc9c;
+}
+
+#playpause:first-letter {
+	text-transform: uppercase;
+}

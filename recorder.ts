@@ -309,7 +309,7 @@ var currentTime = +new Date(),
 	lastRecordTime = 0,
 	playTimeout = 0,
 	isPlaying = false,
-	speed = 500;
+	speed = 300;
 
 setInterval(function() {
 	if (isPlaying) {
@@ -366,7 +366,7 @@ app.get('/history/:precision', function(req, res) {
 	res.send("ok");
 }).get('/playpause', function(req, res) {
 	isPlaying = !isPlaying;
-	res.send(isPlaying ? "play" : "pause");
+	res.send(isPlaying ? "pause" : "play");
 });
 
 app.use(express.static('recorder_public'));

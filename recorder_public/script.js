@@ -95,5 +95,13 @@ $(document).ready(function() {
 
 	});
 
+	var playPause = $('#playpause');
+
+	playPause.click(function() {
+		$.get('/playpause', function(data) {
+			playPause.text(data).blur();
+		})
+	});
+
 });
 
