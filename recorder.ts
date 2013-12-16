@@ -2,6 +2,13 @@
 /// <reference path="./definitions/NodeMaster.d.ts" />
 /// <reference path="./definitions/express.d.ts" />
 
+var argv = require('optimist')
+	.usage('Master recorder.\nUsage: $0')
+	.demand('database')
+	.describe('The SQLITE database')
+	.default('database', 'recorder.db')
+	.argv;
+
 // Import in typescript and commondjs style
 var ProtoBuf = require("protobufjs");
 var ws = require("ws");
@@ -46,7 +53,7 @@ function StoreToList(input: {[ID:string] : any}) : any[] {
 	return list;
 }
 
-var db = new sqlite3.Database('recorder.db');
+var db = new sqlite3.Database(argv.database);
 
 db.serialize(function() {
 	db.run('CREATE TABLE IF NOT EXISTS recorder (datetime INTEGER, scope BLOB)');
