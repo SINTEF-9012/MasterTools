@@ -173,7 +173,7 @@ wsi.on('message', function(data : NodeBuffer) {
 	var transaction = parseTransaction(data);
 
 	// Prevent infinite loops
-	// (just security when multiple instances are running)
+	// And don't save timemachine packets, it doesn't make sense :-)
 	if (transaction.SenderID=="TimeMachine") {
 		return;
 	}
@@ -305,6 +305,27 @@ function setTransaction(buffer : NodeBuffer) {
 	wsi.send(transaction.toBuffer());
 }
 
+var currentTime = +new Date(),
+	lastRecordTime = 0,
+	playTimeout = 0,
+	isPlaying = false,
+	speed = 500;
+
+setInterval(function() {
+	if (isPlaying) {
+		currentTime += speed;
+
+		findDb.get(currentTime, function(error, row) {
+			if (lastRecordTime != row.datetime) {
+				currentTime = row.datetime;
+				lastRecordTime = row.datetime;	
+
+				setTransaction(row.scope);
+			}
+		});
+	}
+}, speed);
+
 // Express <3
 var app = express();
 
@@ -333,9 +354,19 @@ app.get('/history/:precision', function(req, res) {
 	});
 }).get('/set/:datetime', function(req, res) {
 	findDb.get(parseInt(req.params.datetime), function(error, row) {
+		currentTime = row.datetime;
 		setTransaction(row.scope);
 		res.send("ok");
 	});
+}).get('/play', function(req, res) {
+	isPlaying = true;
+	res.send("ok");
+}).get('/pause', function(req, res) {
+	isPlaying = false;
+	res.send("ok");
+}).get('/playpause', function(req, res) {
+	isPlaying = !isPlaying;
+	res.send(isPlaying ? "play" : "pause");
 });
 
 app.use(express.static('recorder_public'));
