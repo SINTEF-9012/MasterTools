@@ -181,7 +181,8 @@ wsi.on('message', function(data : NodeBuffer) {
 
 	// Prevent infinite loops
 	// And don't save timemachine packets, it doesn't make sense :-)
-	if (transaction.SenderID=="TimeMachine") {
+	// Don't save initialization packets too
+	if (transaction.SenderID.match(/(TimeMachine|Initialization)/)) {
 		return;
 	}
 
