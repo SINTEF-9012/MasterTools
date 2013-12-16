@@ -37,7 +37,10 @@ $(document).ready(function() {
 		} 
 	}
 
-	myScroll.on('scrollEnd', WatchScroll);
+	myScroll.on('scrollEnd', function() {
+		WatchScroll();
+		$.get('/set/'+currentTime);
+	});
 	myScroll.on('scroll', WatchScroll);
 		
 	$.get('/history/10000', function(data){

@@ -73,14 +73,11 @@ var wsi = new ws("ws://localhost:8181/MasterTools");
 
 var somethingChanged = false;
 
-wsi.on('message', function(data : NodeBuffer, flags : any) {
-	var transaction = protoTransaction.decode(data);
+function parseTransaction(data : NodeBuffer) : NodeMaster.Transaction {
+	return protoTransaction.decode(data);
+}
 
-	// Prevent infinite loops
-	// (just security when multiple instances are running)
-	if (transaction.SenderID=="TimeMachine") {
-		return;
-	}
+function updateScope(transaction : NodeMaster.Transaction) {
 
 	var publish = transaction.PublishList,
 		remove = transaction.RemoveList;
@@ -168,6 +165,21 @@ wsi.on('message', function(data : NodeBuffer, flags : any) {
 		});
 	}
 
+	return transaction;
+}
+
+wsi.on('message', function(data : NodeBuffer) {
+
+	var transaction = parseTransaction(data);
+
+	// Prevent infinite loops
+	// (just security when multiple instances are running)
+	if (transaction.SenderID=="TimeMachine") {
+		return;
+	}
+
+	updateScope(transaction);
+
 	somethingChanged = true;
 
 });
@@ -194,6 +206,105 @@ setInterval(function() {
 	}
 }, 1000); // Record each second
 
+function setTransaction(buffer : NodeBuffer) {
+	var transaction = protoTransaction.decode(buffer);
+	transaction.SenderID = "TimeMachine";
+
+	transaction.RemoveList = new protoTransaction.Content();
+
+	if (transaction.PublishList) {
+
+		// Beacons
+		var newBeaconsID = {};
+		transaction.PublishList.HelpBeaconList.forEach(function(HelpBeacon) {
+			newBeaconsID[HelpBeacon.ID] = true;
+		});
+
+		for (var ID in scope.HelpBeaconStore) {
+			if (!newBeaconsID[ID]) {
+				transaction.RemoveList.HelpBeaconList.push(scope.HelpBeaconStore[ID]);
+			}
+		}
+
+		// Incidents
+		var IncidentObjetsID = {};
+		transaction.PublishList.IncidentObjectList.forEach(function(IncidentObject) {
+			IncidentObjetsID[IncidentObject.ID] = true;
+		});
+
+		for (var ID in scope.IncidentObjectStore) {
+			if (!IncidentObjetsID[ID]) {
+				transaction.RemoveList.IncidentObjectList.push(scope.IncidentObjectStore[ID]);
+			}
+		}
+
+		// Media
+		var mediasID = {};
+		transaction.PublishList.MediaList.forEach(function(Media) {
+			mediasID[Media.ID] = true;
+		});
+
+		for (var ID in scope.MediaStore) {
+			if (!mediasID[ID]) {
+				transaction.RemoveList.MediaList.push(scope.MediaStore[ID]);
+			}
+		}
+
+		//  Messengers
+		var messengersID = {};
+		transaction.PublishList.MessengerList.forEach(function(Messenger) {
+			messengersID[Messenger.ID] = true;
+		});
+
+		for (var ID in scope.MessengerStore) {
+			if (!messengersID[ID]) {
+				transaction.RemoveList.MessengerList.push(scope.MessengerStore[ID]);
+			}
+		}
+
+		// Patients
+		var patientsID = {};
+		transaction.PublishList.PatientList.forEach(function(Patient) {
+			patientsID[Patient.ID] = true;
+		});
+
+		for (var ID in scope.PatientStore) {
+			if (!patientsID[ID]) {
+				transaction.RemoveList.PatientList.push(scope.PatientStore[ID]);
+			}
+		}
+
+		// Resources mobizilation
+		var resourceMobilizationsID = {};
+		transaction.PublishList.ResourceMobilizationList.forEach(function(ResourceMobilization) {
+			resourceMobilizationsID[ResourceMobilization.ID] = true;
+		});
+
+		for (var ID in scope.ResourceMobilizationStore) {
+			if (!resourceMobilizationsID[ID]) {
+				transaction.RemoveList.ResourceMobilizationList.push(scope.ResourceMobilizationStore[ID]);
+			}
+		}
+
+		// Resources status
+		var resourceStatusID = {};
+		transaction.PublishList.ResourceStatusList.forEach(function(ResourceStatus) {
+			resourceStatusID[ResourceStatus.ID] = true;
+		});
+
+		for (var ID in scope.ResourceStatusStore) {
+			if (!resourceStatusID[ID]) {
+				transaction.RemoveList.ResourceStatusList.push(scope.ResourceStatusStore[ID]);
+			}
+		}
+	}
+
+	updateScope(transaction);
+
+	somethingChanged = false;
+	wsi.send(transaction.toBuffer());
+}
+
 // Express <3
 var app = express();
 
@@ -219,6 +330,11 @@ app.get('/history/:precision', function(req, res) {
 }).get('/get/:datetime', function(req, res) {
 	findDb.get(parseInt(req.params.datetime), function(error, row) {
 		res.send(row);
+	});
+}).get('/set/:datetime', function(req, res) {
+	findDb.get(parseInt(req.params.datetime), function(error, row) {
+		setTransaction(row.scope);
+		res.send("ok");
 	});
 });
 
