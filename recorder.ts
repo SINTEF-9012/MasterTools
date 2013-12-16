@@ -33,13 +33,35 @@ var scope : {
 	ResourceStatusStore: {}
 };
 
+var differencesAmount = 0;
+
 // Update each no-null properties
 function updateProperties(input: any, output:any) {
 	for (var key in input) {
 		// Don't update getter and setters
-		if (!key.match(/^([sg]et|__construct|encode|toArrayBuffer|toBuffer|toString)/)) {
-			if (input[key] != null) {
-				output[key] = input[key];
+		if (!key.match(/^(ID|[sg]et|__construct|encode|toArrayBuffer|toBuffer|toString)/)) {
+			var ikey = input[key];
+			if (ikey != null) {
+
+				var okey = output[key];
+
+				differencesAmount += 1;
+
+				var d = 1;
+
+				if (isFinite(ikey) && isFinite(okey)) {
+					d = Math.abs((ikey-okey)/okey)||1;
+				}
+				else if (typeof ikey === "object" && ikey.lat && ikey.lng && okey != null) {
+					d = Math.abs((ikey.lat-okey.lat)/okey.lat)||1
+						+ Math.abs((ikey.lng-okey.lng)/okey.lng)||1;
+				}
+
+				if (d < 0.00000001) {
+					differencesAmount *= d/0.00000001;
+				}
+
+				output[key] = ikey;
 			}
 		}
 	}
@@ -56,19 +78,19 @@ function StoreToList(input: {[ID:string] : any}) : any[] {
 var db = new sqlite3.Database(argv.database);
 
 db.serialize(function() {
-	db.run('CREATE TABLE IF NOT EXISTS recorder (datetime INTEGER, scope BLOB)');
+	db.run('CREATE TABLE IF NOT EXISTS recorder (datetime INTEGER, scope BLOB, diff INTEGER)');
 	db.run('CREATE UNIQUE INDEX IF NOT EXISTS recorderindex ON recorder(datetime)');
 });
 
-var insertDb = db.prepare('INSERT INTO recorder VALUES (?, ?)'),
-	findDb = db.prepare('SELECT datetime, scope FROM recorder'
+var insertDb = db.prepare('INSERT INTO recorder VALUES (?, ?, ?)'),
+	findDb = db.prepare('SELECT datetime, scope, diff FROM recorder'
 		+' WHERE ABS($time-datetime) = (SELECT MIN(ABS($time - datetime)) FROM recorder)'),
 	infosDb = db.prepare('SELECT (SELECT COUNT(*) FROM recorder) AS count'
 		+', (SELECT datetime FROM recorder'
 			+' WHERE datetime = (SELECT MIN(datetime) FROM recorder)) AS oldest'
 		+', (SELECT datetime FROM recorder'
 			+' WHERE datetime = (SELECT MAX(datetime) FROM recorder)) AS newest'),
-	historyDb = db.prepare('SELECT datetime AS d, LENGTH(scope) AS s'
+	historyDb = db.prepare('SELECT datetime AS d, diff AS s'
 		+' FROM recorder ORDER BY datetime ASC');
 
 var protoTransaction : NodeMaster.TransactionBuilder =
@@ -91,24 +113,31 @@ function updateScope(transaction : NodeMaster.Transaction) {
 
 	if (remove) {
 		publish.HelpBeaconList.forEach(function(HelpBeacon) {
+			differencesAmount += 10;
 			delete scope.HelpBeaconStore[HelpBeacon.ID];
 		});
 		publish.IncidentObjectList.forEach(function(IncidentObject) {
+			differencesAmount += 10;
 			delete scope.IncidentObjectStore[IncidentObject.ID];
 		});
 		publish.MediaList.forEach(function(Media) {
+			differencesAmount += 10;
 			delete scope.MediaStore[Media.ID];
 		});
 		publish.MessengerList.forEach(function(Messenger) {
+			differencesAmount += 10;
 			delete scope.MessengerStore[Messenger.ID];
 		});
 		publish.PatientList.forEach(function(Patient) {
+			differencesAmount += 10;
 			delete scope.PatientStore[Patient.ID];
 		});
 		publish.ResourceMobilizationList.forEach(function(ResourceMobilization) {
+			differencesAmount += 10;
 			delete scope.ResourceMobilizationStore[ResourceMobilization.ID];
 		});
 		publish.ResourceStatusList.forEach(function(ResourceStatus) {
+			differencesAmount += 10;
 			delete scope.ResourceStatusStore[ResourceStatus.ID];
 		});
 	}
@@ -119,6 +148,7 @@ function updateScope(transaction : NodeMaster.Transaction) {
 			if (data) {
 				updateProperties(HelpBeacon, data);
 			} else {
+				differencesAmount += 10;
 				scope.HelpBeaconStore[HelpBeacon.ID] = HelpBeacon;
 			}
 		});
@@ -127,6 +157,7 @@ function updateScope(transaction : NodeMaster.Transaction) {
 			if (data) {
 				updateProperties(IncidentObject, data);
 			} else {
+				differencesAmount += 10;
 				scope.IncidentObjectStore[IncidentObject.ID] = IncidentObject;
 			}
 		});
@@ -135,6 +166,7 @@ function updateScope(transaction : NodeMaster.Transaction) {
 			if (data) {
 				updateProperties(Media, data);
 			} else {
+				differencesAmount += 10;
 				scope.MediaStore[Media.ID] = Media;
 			}
 		});
@@ -143,6 +175,7 @@ function updateScope(transaction : NodeMaster.Transaction) {
 			if (data) {
 				updateProperties(Messenger, data);
 			} else {
+				differencesAmount += 10;
 				scope.MessengerStore[Messenger.ID] = Messenger;
 			}
 		});
@@ -151,6 +184,7 @@ function updateScope(transaction : NodeMaster.Transaction) {
 			if (data) {
 				updateProperties(Patient, data);
 			} else {
+				differencesAmount += 10;
 				scope.PatientStore[Patient.ID] = Patient;
 			}
 		});
@@ -159,6 +193,7 @@ function updateScope(transaction : NodeMaster.Transaction) {
 			if (data) {
 				updateProperties(ResourceMobilization, data);
 			} else {
+				differencesAmount += 10;
 				scope.ResourceMobilizationStore[ResourceMobilization.ID] = ResourceMobilization;
 			}
 		});
@@ -167,6 +202,7 @@ function updateScope(transaction : NodeMaster.Transaction) {
 			if (data) {
 				updateProperties(ResourceStatus, data);
 			} else {
+				differencesAmount += 10;
 				scope.ResourceStatusStore[ResourceStatus.ID] = ResourceStatus;
 			}
 		});
@@ -208,9 +244,10 @@ setInterval(function() {
 		transactionToStore.PublishList.ResourceStatusList = StoreToList(scope.ResourceStatusStore);
 
 		// Store it in the database <3
-		insertDb.run(+new Date, transactionToStore.toBuffer());
+		insertDb.run(+new Date, transactionToStore.toBuffer(), Math.round(differencesAmount));
 
 		somethingChanged = false;
+		differencesAmount = 0;
 	}
 }, 1000); // Record each second
 
@@ -307,7 +344,9 @@ function setTransaction(buffer : NodeBuffer) {
 		}
 	}
 
+	var tmpDifferencesAmount = differencesAmount;
 	updateScope(transaction);
+	differencesAmount = tmpDifferencesAmount;
 
 	somethingChanged = false;
 	wsi.send(transaction.toBuffer());
@@ -340,11 +379,15 @@ var app = express();
 app.get('/history/:precision', function(req, res) {
 	var result = [],
 		precision = parseInt(req.params.precision),
-		oldTime = 0;
+		oldTime = 0,
+		currentDiff = 0;
 
 	historyDb.each(function(error, row){
+		currentDiff += row.s;
 		if (row.d - oldTime > precision) {
 			oldTime = row.d;
+			row.s = currentDiff;
+			currentDiff = 0;
 			result.push(row);
 		}
 	}, function() {

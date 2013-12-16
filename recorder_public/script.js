@@ -70,9 +70,12 @@ $(document).ready(function() {
 		data.forEach(function(d) {
 			var r = record.clone();
 		
-			var width = Math.max(Math.min(parseInt((d.d-previousTime)/1000), 99),3);
+			var width = Math.max(Math.min(parseInt((d.d-previousTime)/1000), 99),3),
+				height = (1/(1+Math.exp(-d.s/(diffSize/6)))-0.5)*0.9+0.1;
 
-			r.css('height', parseInt(((d.s-minSize)/diffSize*90+10))+'%')
+			console.log(diffSize, d.s, height)
+
+			r.css('height', height*100+'%')
 			 .css('width',width) 
 			 .data('time',d.d);
 
