@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.IO.Pipes;
 using System.Linq;
@@ -37,37 +38,10 @@ namespace Arma2MasterConnector
 
             var server = new TcpListener(IPAddress.Any, 7845);
 
-            var interpolation = new LatLngInterpolation();
-            //interpolation.AddPoint(39.883154, 25.223207, 13859, 13433);
-            //interpolation.AddPoint(39.988642, 25.036114, 2066, 22463);
-            //interpolation.AddPoint(39.831807, 25.053073, 2854, 9390);
-
-            var start = DotSpatial.Projections.KnownCoordinateSystems.Geographic.World.WGS1984;
-            var end = DotSpatial.Projections.KnownCoordinateSystems.Projected.World.WebMercator;
-
-            var projection = new double[2] { 39.905572, 25.221947};
-            
-            DotSpatial.Projections.Reproject.ReprojectPoints(projection, null, start, end, 0, 1);
-            /*Console.WriteLine(a[0] + " === "+a[1]);
-            a[0] += 1000;
-            DotSpatial.Projections.Reproject.ReprojectPoints(a, null, end, start, 0, 1);
-            Console.WriteLine(a[0] + " === " + a[1]);
-
-            interpolation.AddPoint(39.785307, 25.35754, 22315, 5101);
-            interpolation.AddPoint(39.905572, 25.221947, 14258, 15819);
-            interpolation.AddPoint(39.871295, 25.051542, 2837, 12671);
-            interpolation.AddPoint(39.790971, 25.236764, 14536, 5780);
-            interpolation.AddPoint(39.96116, 25.273177, 17191, 19864);
-
-            var p = interpolation.ToLatLng(14000, 9000);
-            var c = interpolation.ToXY(p.Lat, p.Lng);
-            Console.WriteLine(c.X + " -- "+c.Y);
-            Console.ReadLine();
-
-            return;*/
+            var latLngProjection = DotSpatial.Projections.KnownCoordinateSystems.Geographic.World.WGS1984;
+            var metersProjection = DotSpatial.Projections.KnownCoordinateSystems.Projected.World.WebMercator;
 
             server.Start();
-
 
             while (true)
             {
@@ -79,29 +53,60 @@ namespace Arma2MasterConnector
                     
                     var stream = new StreamReader(client.GetStream());
 
-                    //var centerLocation = new Location();
+                    var centerLocation = new double[2];
+                    var metersX = 0.0;
+                    var metersY = 0.0;
+                    var scale = 1.0;
 
                     while (client.GetStream().CanRead)
                     {
 
                         var message = stream.ReadLine();
 
+
                         Console.WriteLine("Managing: " + message);
 
-                        if (message.StartsWith("INIT:"))
+                        if (message != null && message.StartsWith("INIT:"))
                         {
-                            /*centerLocation = new Location
-                                {
-                                    lat=39.883162,
-                                    lng=25.223201
-                                };*/
+                            
+
+                            var init = message.Split(':');
+
+                            // INIT:localhost:7845:39.905572:25.221947:14258:15819
+                            double.TryParse(init[3], NumberStyles.Any, CultureInfo.InvariantCulture, out centerLocation[0]);
+                            double.TryParse(init[4], NumberStyles.Any, CultureInfo.InvariantCulture, out centerLocation[1]);
+                            double.TryParse(init[5], NumberStyles.Any, CultureInfo.InvariantCulture, out metersX);
+                            double.TryParse(init[6], NumberStyles.Any, CultureInfo.InvariantCulture, out metersY);
+                            double.TryParse(init[7], NumberStyles.Any, CultureInfo.InvariantCulture, out scale);
+
+                            DotSpatial.Projections.Reproject.ReprojectPoints(centerLocation, null,
+                                latLngProjection, metersProjection, 0, 1);
+                            
                             continue;
                         }
 
 
                         // TODO send scripts
-                        //w.WriteLine("group abcd addWaypoint [[14352,15000,100],0] setWayPointType \"MOVE\";");
-                        //w.Flush();
+
+                        var loc = new double[2] {39.879419,25.231004};
+                        DotSpatial.Projections.Reproject.ReprojectPoints(loc, null, latLngProjection, metersProjection, 0, 1);
+                        loc[0] = (loc[0]-centerLocation[0])*scale + metersY;
+                        loc[1] = (loc[1] - centerLocation[1])*scale + metersX;
+
+                        var plusXplusX = (loc[1] - metersX) / scale;
+                        var plusYplusY = (loc[0] - metersY) / scale;
+
+                        var pp = new double[2] { plusYplusY + centerLocation[0], plusXplusX + centerLocation[1] };
+
+                        DotSpatial.Projections.Reproject.ReprojectPoints(pp, null, metersProjection, latLngProjection, 0, 1);
+
+
+                        Console.WriteLine(loc[0] + " --- " + loc[1]);
+                        Console.WriteLine(pp[0] + " --- " + pp[1]);
+
+
+                        w.WriteLine("group secondlapin addWaypoint [["+(int)loc[1]+","+(int)loc[0]+",100],0] setWayPointType \"MOVE\";");
+                        w.Flush();
 
                         IList<object> arguments;
 
@@ -125,33 +130,15 @@ namespace Arma2MasterConnector
                             patient.ID = (string)argument[0];
 
 
-
-                            /*lat = 42.507847,//59.944821,*
-                                    lng = 5.973579//10.712956*/
-
-                            /*var location = new Location(centerLocation);
-
-                            location.Move(270, 13856.3*(1/0.75));
-                            location.Move(180, 13433.7 * (1 / 0.75));*/
-
                             var x = (double) argument[1];
                             var y = (double) argument[2];
 
-                            //22315, 5101
-                            //14258, 15819
+                            var plusX = (x - metersX) / scale;
+                            var plusY = (y - metersY) / scale;
 
-                            var plusX = (x - 14258) / 0.75;
-                            var plusY = (y - 15819) / 0.75;
+                            var p = new double[2] {plusY + centerLocation[0], plusX + centerLocation[1]};
 
-                            var p = new double[2] {plusY + projection[0], plusX + projection[1]};
-
-                            DotSpatial.Projections.Reproject.ReprojectPoints(p, null, end, start, 0, 1);
-
-                            /*location.Move(
-                                (Math.Tan(x/y)*57.2957795)%360,
-                                Math.Sqrt(x * x + y * y) * (1 / 0.75)
-                                );*/
-                            //var location = interpolation.ToLatLng(x, y);
+                            DotSpatial.Projections.Reproject.ReprojectPoints(p, null, metersProjection, latLngProjection, 0, 1);
 
                             patient.Location = new LatLng()
                             {
@@ -159,13 +146,6 @@ namespace Arma2MasterConnector
                                 lng = p[1]
                             };
 
-                            //Console.WriteLine(x + " canard "+y + " => " + Math.Sqrt(x*x+y*y) + " ou "+centerLocation.DistanceTo(location));
-
-                            /*if (patient.ID.Contains("antoinep"))
-                            {
-                                Console.WriteLine("X: " + location.X+"\tY:"+location.Y);
-                                Console.WriteLine("Lat: " + location.Lat + "\tLng:" + location.Lng);
-                            }*/
                             transaction.PublishList.PatientList.Add(patient);
                         }
 

@@ -26,7 +26,7 @@ namespace Arma2MasterPlugin
         private readonly Queue<string> _action = new Queue<string>();
         private string _messageToSend = "";
 
-        private string centerLocation = "";
+        private string initMessage = "";
 
         public override string Invoke(string args, int maxResultSize)
         {
@@ -46,7 +46,7 @@ namespace Arma2MasterPlugin
 
                             _hostName = endpoint[1];
                             int.TryParse(endpoint[2], out _port);
-                            centerLocation = endpoint[3] + "," + endpoint[4];
+                            initMessage = args;
                         }
                         else
                         {
@@ -75,7 +75,7 @@ namespace Arma2MasterPlugin
                                   if (stream.CanWrite)
                                   {
                                       _streamWriter = new StreamWriter(stream);
-                                      _streamWriter.WriteLine("INIT:"+centerLocation);
+                                      _streamWriter.WriteLine(initMessage);
                                       _streamWriter.Flush();
                                   }
                                   else

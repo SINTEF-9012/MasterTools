@@ -60,7 +60,7 @@ namespace Arma2MasterConnector
             double lng2 = lng + Math.Atan2(Math.Sin(bearing) * sdr * Math.Cos(lat),
                 cdr - Math.Sin(lat) * Math.Sin(lat2));
 
-            lng2 = (lng2 + 3 * Math.PI) % (2 * Math.PI) - Math.PI;  // normalise to -180..+180º
+            lng2 = (lng2 + Math.PI) % (2 * Math.PI) - Math.PI;  // normalise to -180..+180º
 
             lat2 = lat2 * 180.0 / Math.PI;
             lng2 = lng2 * 180.0 / Math.PI;
